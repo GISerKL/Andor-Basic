@@ -1,0 +1,70 @@
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+
+def linear_regression_with_missing_data(dataset, i, j):
+    # 从第i个到第j个数据不要
+    remaining_data = dataset[:i] + dataset[j+1:]
+
+    # 提取输入特征和输出目标
+    X = np.array([data[0] for data in remaining_data]).reshape(-1, 1)
+    y = np.array([data[1] for data in remaining_data])
+
+    # 创建多项式特征转换对象
+    poly_features = PolynomialFeatures(degree=3)
+    # 对输入特征进行多项式转换
+    X_poly = poly_features.fit_transform(X)
+
+    # 执行线性回归
+    model = LinearRegression()
+    model.fit(X_poly, y)
+
+    r_squared = model.score(X_poly, y)
+    print("回归系数 (权重):", r_squared)
+
+    # 补齐第i个到第j个数据
+    missing_data = dataset[i:j+1]
+    X_missing = np.array([data[0] for data in missing_data]).reshape(-1, 1)
+    X_missing_poly = poly_features.transform(X_missing)
+    predicted_values = model.predict(X_missing_poly)
+
+    # 将预测值添加到原始数据集中的适当位置
+    dataset = dataset[:i] + list(zip(X_missing.flatten(), predicted_values)) + dataset[j+1:]
+
+    return dataset
+
+# 示例数据集
+dataset = []
+filename = 'a300160'
+
+# 定义要删除的范围
+i = 415
+j = 406
+line = 509
+
+with open(filename+'.asc', 'r') as file:
+    # 读取文件的前xx行
+    for _ in range(line):
+        line = file.readline().strip()
+        if line:
+            # 假设每行数据以空格分隔，并且有两列数据
+            data = line.split(",")
+            if len(data) == 2:
+                # 将数据转换为浮点数并添加到数据集中
+                dataset.append((float(data[0]), float(data[1])))
+
+print("数据集：", dataset)
+
+
+# 执行线性回归并补齐数据
+updated_dataset = linear_regression_with_missing_data(dataset, i, j)
+
+
+output_file = filename + '.txt'  # 输出文件路径
+
+with open(output_file, 'w') as file:
+    for data in updated_dataset:
+        line = ','.join(str(value) for value in data)  # 将数据转换为字符串并用空格连接
+        file.write(line + '\n')  # 写入数据行，并在末尾添加换行符
+
+print("数据已成功写入文件:", output_file)
