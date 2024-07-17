@@ -1,0 +1,86 @@
+import numpy as np
+import pandas as pd
+from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
+
+
+# 定义 Gaussian 函数
+def gaussian(x, amp, cen, wid):
+    return amp * np.exp(-(x - cen) ** 2 / (2 * wid ** 2))
+
+
+# 定义 cubic 函数
+def cubic(x, a, b, c, d):
+    return a * x ** 3 + b * x ** 2 + c * x + d
+
+
+# 读取 ASC 文件数据，使用逗号作为分隔符
+def read_asc_file(file_path):
+    data = pd.read_csv(file_path, sep=",", header=None, names=["sequence", "value"])
+    return data
+
+
+# 提取数据并进行处理
+def process_data(data, i, j, a, b):
+    # 提取第 i 到第 j 个数据
+    subset = data.iloc[i:j + 1].reset_index(drop=True)
+
+    # 确保 a 和 b 在 subset 的有效范围内
+    a = max(0, a)
+    b = min(len(subset) - 1, b)
+
+    # 去除第 a 到第 b 个数据
+    subset = subset.drop(range(a, b + 1)).reset_index(drop=True)
+    return subset
+
+
+# 拟合数据
+def fit_data(x, y):
+    # 初始猜测参数
+    initial_gaussian_params = [np.max(y), np.mean(x), np.std(x)]
+    initial_cubic_params = [1, 1, 1, 1]
+
+    # 执行拟合，增加最大迭代次数
+    popt_gaussian, _ = curve_fit(gaussian, x, y, p0=initial_gaussian_params, maxfev=5000)
+    popt_cubic, _ = curve_fit(cubic, x, y, p0=initial_cubic_params, maxfev=5000)
+
+    return popt_gaussian, popt_cubic
+
+
+# 主函数
+def main():
+    file_path = "average.asc"
+    i, j = 200, 509  # 示例：提取第10到第50个数据
+    a, b = 415, 466  # 示例：去除第20到第30个数据
+
+    # 读取数据
+    data = read_asc_file(file_path)
+
+    # 处理数据
+    processed_data = process_data(data, i, j, a, b)
+
+    # 获取处理后的 x 和 y 值
+    x = processed_data["sequence"]
+    y = processed_data["value"]
+
+    # 拟合数据
+    popt_gaussian, popt_cubic = fit_data(x, y)
+
+    # 生成拟合曲线
+    x_fit = np.linspace(x.min(), x.max(), 500)
+    y_fit_gaussian = gaussian(x_fit, *popt_gaussian)
+    y_fit_cubic = cubic(x_fit, *popt_cubic)
+
+    # 绘制原始数据和拟合曲线
+    plt.figure(figsize=(10, 6))
+    plt.plot(x, y, 'bo', label='Data')
+    plt.plot(x_fit, y_fit_gaussian, 'r-', label='Gaussian Fit')
+    plt.plot(x_fit, y_fit_cubic, 'g-', label='Cubic Fit')
+    plt.xlabel('Sequence')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
