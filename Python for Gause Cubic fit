@@ -49,9 +49,9 @@ def fit_data(x, y):
 
 # 主函数
 def main():
-    file_path = "average.asc"
-    i, j = 200, 509  # 示例：提取第10到第50个数据
-    a, b = 415, 466  # 示例：去除第20到第30个数据
+    file_path = "average.asc" #你的文件路径
+    i, j = 10, 50  # 示例：提取第10到第50个数据
+    a, b = 20, 30  # 示例：去除第20到第30个数据
 
     # 读取数据
     data = read_asc_file(file_path)
