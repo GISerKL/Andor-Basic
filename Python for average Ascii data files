@@ -1,0 +1,30 @@
+import numpy as np
+import pandas as pd
+import glob
+
+# 定义读取单个 ASC 文件的函数，使用逗号作为分隔符
+def read_asc_file(file_path):
+    data = pd.read_csv(file_path, sep=",", header=None, names=["sequence", "value"])
+    return data
+
+# 获取所有 ASC 文件的路径
+asc_files = glob.glob("*.asc")
+
+# 初始化一个空的 DataFrame 来存储所有数据
+all_data = pd.DataFrame()
+
+# 逐个读取 ASC 文件并合并数据
+for file in asc_files:
+    data = read_asc_file(file)
+    if all_data.empty:
+        all_data = data
+    else:
+        all_data = pd.merge(all_data, data, on="sequence", how="outer")
+
+# 计算每个序列的平均值
+all_data["average"] = all_data.iloc[:, 1:].mean(axis=1)
+
+# 保存结果到新的 ASC 文件，使用逗号作为分隔符
+all_data[["sequence", "average"]].to_csv("average.asc", sep=',', header=False, index=False)
+
+print("平均值计算完成，结果已保存到 average.asc 文件中。")
